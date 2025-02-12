@@ -1,0 +1,62 @@
+[MASTER]
+extension-pkg-whitelist=lxml,pyodbc
+# Uncomment and add directories if required
+#init-hook='import sys; sys.path.extend(["dir1", "dir2"])'
+jobs=3
+
+unsafe-load-any-extension=no
+
+[reports]
+output-format=parseable
+#reports=no
+#score=yes
+load-plugins=pylint_plugins.keyword_arg_checker.keyword_arg_checker
+
+[TYPECHECK]
+contextmanager-decorators=contextlib.contextmanager
+generated-members=pycurl\..*,
+                  TaskReporter\..*
+ignored-classes=optparse.Values,
+                thread._local,
+                _thread._local,
+                urllib2.URLError
+ignored-modules=pytest
+
+[MESSAGES CONTROL]
+disable=invalid-name,
+        no-value-for-parameter,
+        broad-except,
+        no-else-return,
+        fixme,
+        global-statement,
+        too-few-public-methods,
+        too-many-arguments,
+        too-many-boolean-expressions,
+        too-many-branches,
+        too-many-instance-attributes,
+        too-many-locals,
+        too-many-lines,
+        too-many-nested-blocks,
+        too-many-public-methods,
+        too-many-return-statements,
+        too-many-statements,
+        eval-used,
+        useless-object-inheritance,
+        import-outside-toplevel,
+        old-style-class,
+        duplicate-code
+
+enable=I0013,I0014,I0021
+
+[FORMAT]
+max-line-length = 119
+
+[SIMILARITIES]
+# Ignore comments when computing similarities.
+ignore-comments=yes
+# Ignore docstrings when computing similarities.
+ignore-docstrings=yes
+# Ignore imports when computing similarities.
+ignore-imports=yes
+# Minimum lines number of a similarity.
+min-similarity-lines=7

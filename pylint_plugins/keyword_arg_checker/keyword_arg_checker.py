@@ -8,11 +8,13 @@ if TYPE_CHECKING:
 
 registered_node_ids = []
 
+
 class KeywordArgEnforcerChecker(BaseChecker):
     """A Pylint checker to enforce keyword arguments in function calls."""
-    name: str = "keyword-arg-checker"
-    priority: int = -1
-    msgs: dict[str, tuple[str, str, str]] = {
+
+    name = "keyword-arg-checker"
+    priority = -1
+    msgs = {
         "E9001": (
             "Function arguments should be passed as keyword arguments.",
             "keyword-arg-checker",
@@ -33,16 +35,16 @@ class KeywordArgEnforcerChecker(BaseChecker):
 
     def visit_call(self, node: astroid.Call) -> None:
         """Checks if keyword arguments used in a function call."""
-        
         func = astroid.util.safe_infer(node.func)
-        if (
-            isinstance(func, astroid.BoundMethod)
-            and not isinstance(func.bound, astroid.Instance)
+        if not isinstance(func, astroid.BoundMethod) and not isinstance(
+            func, astroid.ClassDef
         ):
             call_site = astroid.arguments.CallSite.from_call(node)
             keyword_arguments = call_site.keyword_arguments
             if not keyword_arguments and self.is_new_node_id(node=node):
+                print(type(func))
                 self.add_message("E9001", node=node)
+
 
 def register(linter: PyLinter) -> None:
     """Register the checker in Pylint."""

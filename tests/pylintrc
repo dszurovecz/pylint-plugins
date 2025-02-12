@@ -1,0 +1,1 @@
+load-plugins=atlas.utils.pylint_plugins.keyword_arg_checker
