@@ -1,0 +1,20 @@
+# IDE specific folders
+.idea
+.vscode
+
+# Bytecode
+*.pyc
+
+# Test related output
+.coverage
+test-results/
+
+# Virtual environments
+node_modules
+.venv
+.python-version
+
+# Generated data files
+data/
+test-results/
+.env

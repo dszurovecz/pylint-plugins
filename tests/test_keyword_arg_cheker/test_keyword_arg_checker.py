@@ -55,7 +55,7 @@ def test_flag_unused_argument(
     "file_to_lint, expected_output",
     [
         ("filled_kwargs.py", "Your code has been rated at 10.00/10"),
-        ("builtin_methods.py", "Your code has been rated at 10.00/10")
+        ("builtin_methods.py", "Your code has been rated at 10.00/10"),
     ],
 )
 def test_not_flag_cases(

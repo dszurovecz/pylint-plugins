@@ -1,2 +1,3 @@
 """Module docstring"""
-RESULT = ", ".join( ["apple", "banana", "cherry"])
+
+RESULT = ", ".join(["apple", "banana", "cherry"])
