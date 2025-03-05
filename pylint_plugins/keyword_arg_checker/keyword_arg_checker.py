@@ -42,7 +42,6 @@ class KeywordArgEnforcerChecker(BaseChecker):
             call_site = astroid.arguments.CallSite.from_call(node)
             keyword_arguments = call_site.keyword_arguments
             if not keyword_arguments and self.is_new_node_id(node=node):
-                print(type(func))
                 self.add_message("E9001", node=node)
 
 
