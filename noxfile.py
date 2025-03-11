@@ -15,5 +15,12 @@ def lint(session) -> None:
 def fixlint(session) -> None:
     session.install("poetry")
     session.run("poetry", "install")
-    session.run("ruff", "check", "--config=pyproject.toml", ".", "--fix")
+    # session.run("ruff", "check", "--config=pyproject.toml", ".", "--fix")
     session.run("black", "--config=pyproject.toml", ".")
+
+
+@nox.session(python="3.8", reuse_venv=True)
+def test(session) -> None:
+    session.install("poetry")
+    session.run("poetry", "install")
+    session.run("pytest")
