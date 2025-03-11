@@ -9,4 +9,9 @@ def call_unused_argument(test1, test2, test3):
     return test1, test2, test3
 
 
+def call_empty_args():
+    return True
+
+
 call_unused_argument(1, 2, 3)
+call_empty_args()

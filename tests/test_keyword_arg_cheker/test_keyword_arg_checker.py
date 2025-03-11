@@ -34,21 +34,23 @@ def execute_keyword_arg_checker() -> Callable[[str], str]:
 
 
 @pytest.mark.parametrize(
-    "file_to_lint, expected_output",
+    "file_to_lint, expected_output, not_in_output",
     [
         (
             "not_filled_kwargs.py",
-            "not_filled_kwargs.py:12:0: E9001: Function arguments should be passed as keyword arguments",
+            "not_filled_kwargs.py:16:0: E9001: Function arguments should be passed as keyword arguments",
+            "not_filled_kwargs.py:17:0: E9001: Function arguments should be passed as keyword arguments",
         ),
     ],
 )
 def test_flag_unused_argument(
     file_to_lint: str,
     expected_output: str,
+    not_in_output: str,
     execute_keyword_arg_checker: Callable,
 ) -> None:
     output = execute_keyword_arg_checker(file_to_lint=file_to_lint)
-    assert expected_output in output
+    assert expected_output in output and not (not_in_output in output)
 
 
 @pytest.mark.parametrize(

@@ -1,12 +1,22 @@
-from typing import TYPE_CHECKING
 import astroid
 from pylint.checkers import BaseChecker
 from pylint.lint import PyLinter
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from pylint.reporters import BaseReporter
 
-EXCLUDED_MODULES = {"time", "logging", "math", "os", "sys", "pytest"}
+EXCLUDED_MODULES = {
+    "time",
+    "logging",
+    "math",
+    "os",
+    "sys",
+    "pytest",
+    "logger",
+    "TaskReporter",
+    "calendar",
+}
 BUILTINS = [
     "str",
     "list",
@@ -50,6 +60,7 @@ class KeywordArgEnforcerChecker(BaseChecker):
         """Checks if keyword arguments are used in a function call."""
         if isinstance(node.func, astroid.Attribute):
             base_expr = node.func.expr
+
             if hasattr(base_expr, "name"):
                 if base_expr.name in BUILTINS:
                     return
@@ -63,13 +74,35 @@ class KeywordArgEnforcerChecker(BaseChecker):
             ):
                 return
 
-        func = node.func.infer()
-        if not isinstance(func, (astroid.BoundMethod, astroid.ClassDef)):
-            call_site = astroid.arguments.CallSite.from_call(node)
-            keyword_arguments = call_site.keyword_arguments
+        # Safely infer the function being called. Since `infer` returns a generator, we extract the first item.
+        inferred_funcs = list(node.func.infer())  # Get the inferred functions as a list
+        if not inferred_funcs:
+            return  # If there's no inferred function, we return early.
 
-            if not keyword_arguments and self.is_new_node_id(node):
-                self.add_message("E9001", node=node)
+        func = inferred_funcs[0]
+
+        if isinstance(func, astroid.BoundMethod):
+            # We only want to skip instance methods (methods bound to an object)
+            if func.cls is not None:
+                return
+
+        # Skip functions that have no parameters
+        if isinstance(func, astroid.FunctionDef):
+            # Skip functions with no parameters
+            if not func.args.args:  # No parameters
+                return
+
+        # Skip class constructors like `__init__`
+        elif isinstance(func, astroid.ClassDef):
+            return
+
+        # Now check for keyword arguments
+        call_site = astroid.arguments.CallSite.from_call(node)
+        keyword_arguments = call_site.keyword_arguments
+
+        # If there are no keyword arguments, flag this call
+        if not keyword_arguments and self.is_new_node_id(node):
+            self.add_message("E9001", node=node)
 
 
 def register(linter: PyLinter) -> None:
