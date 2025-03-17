@@ -77,61 +77,101 @@ class KeywordArgEnforcerChecker(BaseChecker):
     def visit_call(self, node: astroid.Call) -> None:
         """Checks if keyword arguments are used in a function call."""
 
+        base_expr = self._get_base_expression(node=node)
+        inferred_func = self._get_inferred_function(node=node)
+
+        if self._is_builtin_function_call(node=node):
+            return
+
+        if self._is_excluded_module(base_expr=base_expr):
+            return
+
+        if not inferred_func:
+            return
+
+        if self._should_skip_function(func=inferred_func):
+            return
+
+        if self._is_bound_method(func=inferred_func) or self._is_builtin_method(
+            func=inferred_func
+        ):
+            return
+
+        # Check if bound method has positional args without keyword args
+        if (
+            self._is_bound_method(inferred_func)
+            and self._has_positional_args_without_keywords(node=node)
+            and self.is_new_node_id(node=node)
+        ):
+            self.add_message("E9001", node=node)
+
+        # Check if keyword arguments are used
+        if not self._has_keyword_arguments(node) and self.is_new_node_id(node):
+            self.add_message("E9001", node=node)
+
+    def _is_builtin_function_call(self, node: astroid.Call) -> bool:
+        """Checks if the function call is to a built-in function."""
         if isinstance(node.func, astroid.Attribute):
             base_expr = node.func.expr
-            if hasattr(base_expr, "name"):
-                if base_expr.name in BUILTINS:
-                    return
+            if hasattr(base_expr, "name") and base_expr.name in BUILTINS:
+                return True
+        return False
 
+    def _get_base_expression(self, node: astroid.Call) -> astroid.NodeNG:
+        """Gets the base expression for an attribute call."""
+        if isinstance(node.func, astroid.Attribute):
+            base_expr = node.func.expr
             while isinstance(base_expr, astroid.Attribute):
                 base_expr = base_expr.expr
+            return base_expr
+        elif isinstance(node.func, astroid.Name):
+            return node.func  # If it's a Name, return it directly
+        return node.func.expr  # In case of other types of functions (though unlikely)
 
-            if (
-                isinstance(base_expr, astroid.Name)
-                and base_expr.name in EXCLUDED_MODULES
-            ):
-                return
+    def _is_excluded_module(self, base_expr: astroid.NodeNG) -> bool:
+        """Checks if the base expression is in excluded modules."""
+        if isinstance(base_expr, astroid.Name) and base_expr.name in EXCLUDED_MODULES:
+            return True
+        return False
 
+    def _get_inferred_function(self, node: astroid.Call) -> astroid.NodeNG:
+        """Attempts to infer the function being called."""
         inferred_funcs = list(node.func.infer())
-        if not inferred_funcs or astroid.util.Uninferable in [
-            i for i in inferred_funcs
-        ]:
-            return
+        if inferred_funcs and astroid.util.Uninferable not in inferred_funcs:
+            return inferred_funcs[0]
+        return None
 
-        func = inferred_funcs[0]
+    def _is_bound_method(self, func: astroid.NodeNG) -> bool:
+        """Checks if the function is a bound method."""
+        return isinstance(func, astroid.BoundMethod)
 
-        if isinstance(func, astroid.BoundMethod):
-            if "builtins" in str(func) or any(method in str(func) for method in BUILTIN_METHODS):
-                return  # Skip built-in methods like append, split, etc.
+    def _is_builtin_method(self, func: astroid.BoundMethod) -> bool:
+        """Checks if the bound method is a built-in method."""
+        return "builtins" in str(func) or any(
+            method in str(func) for method in BUILTIN_METHODS
+        )
 
-            if func.args and func.args.args[0].name == "cls":
-                # If there are positional arguments and no keyword arguments, flag the issue
-                positional_arguments = [
-                    arg for arg in node.args if not isinstance(arg, astroid.Keyword)
-                ]
+    def _has_positional_args_without_keywords(self, node: astroid.Call) -> bool:
+        """Checks if there are positional arguments without keyword arguments."""
+        positional_arguments = [
+            arg for arg in node.args if not isinstance(arg, astroid.Keyword)
+        ]
+        return positional_arguments and not any(
+            isinstance(arg, astroid.Keyword) for arg in node.args
+        )
 
-                if positional_arguments and not any(
-                    isinstance(arg, astroid.Keyword) for arg in node.args
-                ):
-                    # Report error only when positional args are used, and no keyword args
-                    if self.is_new_node_id(node):
-                        self.add_message("E9001", node=node)
-                return
-
-        # Skip functions that have no parameters
-        if isinstance(func, astroid.FunctionDef):
-            if not func.args.args:
-                return
-
-        # Skip class constructors like `__init__`
+    def _should_skip_function(self, func: astroid.NodeNG) -> bool:
+        """Checks if the function should be skipped (e.g., has no parameters or is a class constructor)."""
+        if isinstance(func, astroid.FunctionDef) and not func.args.args:
+            return True
         elif isinstance(func, astroid.ClassDef):
-            return
+            return True
+        return False
 
+    def _has_keyword_arguments(self, node: astroid.Call) -> bool:
+        """Checks if the function call contains keyword arguments."""
         call_site = astroid.arguments.CallSite.from_call(node)
-        keyword_arguments = call_site.keyword_arguments
-
-        if not keyword_arguments and self.is_new_node_id(node):
-            self.add_message("E9001", node=node)
+        return bool(call_site.keyword_arguments)
 
 
 def register(linter: PyLinter) -> None:
