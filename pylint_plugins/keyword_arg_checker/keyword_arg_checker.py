@@ -16,6 +16,11 @@ EXCLUDED_MODULES = {
     "logger",
     "TaskReporter",
     "calendar",
+    "Config",
+    "request" "ReportGenerator",
+    "CMStatusCollector",
+    "json",
+    "open",
 }
 BUILTINS = [
     "str",
@@ -28,7 +33,20 @@ BUILTINS = [
     "float",
     "complex",
     "bool",
+    "re",
 ]
+BUILTIN_METHODS = {
+    "append",
+    "split",
+    "extend",
+    "remove",
+    "pop",
+    "insert",
+    "sort",
+    "join",
+    "range",
+    "choice",
+}
 
 
 class KeywordArgEnforcerChecker(BaseChecker):
@@ -58,9 +76,9 @@ class KeywordArgEnforcerChecker(BaseChecker):
 
     def visit_call(self, node: astroid.Call) -> None:
         """Checks if keyword arguments are used in a function call."""
+
         if isinstance(node.func, astroid.Attribute):
             base_expr = node.func.expr
-
             if hasattr(base_expr, "name"):
                 if base_expr.name in BUILTINS:
                     return
@@ -74,33 +92,44 @@ class KeywordArgEnforcerChecker(BaseChecker):
             ):
                 return
 
-        # Safely infer the function being called. Since `infer` returns a generator, we extract the first item.
-        inferred_funcs = list(node.func.infer())  # Get the inferred functions as a list
-        if not inferred_funcs:
-            return  # If there's no inferred function, we return early.
+        inferred_funcs = list(node.func.infer())
+        if not inferred_funcs or astroid.util.Uninferable in [
+            i for i in inferred_funcs
+        ]:
+            return
 
         func = inferred_funcs[0]
 
         if isinstance(func, astroid.BoundMethod):
-            # We only want to skip instance methods (methods bound to an object)
-            if func.cls is not None:
+            if "builtins" in str(func) or any(method in str(func) for method in BUILTIN_METHODS):
+                return  # Skip built-in methods like append, split, etc.
+
+            if func.args and func.args.args[0].name == "cls":
+                # If there are positional arguments and no keyword arguments, flag the issue
+                positional_arguments = [
+                    arg for arg in node.args if not isinstance(arg, astroid.Keyword)
+                ]
+
+                if positional_arguments and not any(
+                    isinstance(arg, astroid.Keyword) for arg in node.args
+                ):
+                    # Report error only when positional args are used, and no keyword args
+                    if self.is_new_node_id(node):
+                        self.add_message("E9001", node=node)
                 return
 
         # Skip functions that have no parameters
         if isinstance(func, astroid.FunctionDef):
-            # Skip functions with no parameters
-            if not func.args.args:  # No parameters
+            if not func.args.args:
                 return
 
         # Skip class constructors like `__init__`
         elif isinstance(func, astroid.ClassDef):
             return
 
-        # Now check for keyword arguments
         call_site = astroid.arguments.CallSite.from_call(node)
         keyword_arguments = call_site.keyword_arguments
 
-        # If there are no keyword arguments, flag this call
         if not keyword_arguments and self.is_new_node_id(node):
             self.add_message("E9001", node=node)
 

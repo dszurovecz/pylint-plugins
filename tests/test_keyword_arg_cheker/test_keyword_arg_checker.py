@@ -59,6 +59,7 @@ def test_flag_unused_argument(
         ("filled_kwargs.py", "Your code has been rated at 10.00/10"),
         ("builtin_methods.py", "Your code has been rated at 10.00/10"),
         ("mark_parametrize.py", "Your code has been rated at 10.00/10"),
+        ("bound_methods.py", "Your code has been rated at 10.00/10")
     ],
 )
 def test_not_flag_cases(
